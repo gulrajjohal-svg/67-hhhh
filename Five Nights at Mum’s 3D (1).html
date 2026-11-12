@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Five Nights at Mum’s 3D</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root{--room:#120e26;--ink:#e9e4ff;--dim:#a79fd0;--lamp:#ffb347;--glow:#9ff3ff;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--room);color:var(--ink);font-family:"Baloo 2",system-ui,sans-serif;overflow:hidden;user-select:none;touch-action:manipulation}
+#cv{position:fixed;inset:0;width:100%;height:100%;display:block}
+#hud{position:fixed;left:0;right:0;top:0;display:flex;align-items:center;gap:14px;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;pointer-events:none;background:linear-gradient(#0b0918cc,transparent)}
+#clock{font-family:VT323,monospace;font-size:44px;line-height:.9;color:var(--lamp)}
+#night{font-weight:800}
+.meter{flex:1;max-width:340px;font-size:13px;color:var(--dim)}
+.bar{height:12px;border-radius:6px;background:#0d0a1f;border:1px solid #3a3162;position:relative;overflow:hidden}
+#fun{display:block;height:100%;width:0;background:linear-gradient(90deg,#43d9ff,#9ff3ff)}
+#target{position:absolute;top:0;bottom:0;width:2px;background:var(--lamp)}
+#bot{position:fixed;left:0;right:0;bottom:0;padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px;background:linear-gradient(transparent,#0b0918dd)}
+#cap{height:26px;text-align:center;font-style:italic;color:var(--dim);text-shadow:0 1px 4px #000}
+#cap.hot{color:var(--lamp);font-weight:700;font-style:normal}
+#ctl{display:flex;gap:10px;max-width:640px;width:100%;margin:0 auto}
+#sw{flex:1;font:inherit;font-weight:800;font-size:20px;padding:12px;border:0;border-radius:12px;background:var(--glow);color:#10122e;cursor:pointer;box-shadow:0 5px 0 #4aa3b3}
+#sw:active{transform:translateY(3px);box-shadow:0 2px 0 #4aa3b3}
+#mute{font:inherit;padding:12px 14px;border:2px solid #3b3366;border-radius:12px;background:#0b0918aa;color:var(--ink);cursor:pointer}
+button:focus-visible{outline:3px solid var(--lamp);outline-offset:2px}
+#needs{position:fixed;left:14px;top:calc(72px + env(safe-area-inset-top,0px));display:grid;grid-template-columns:auto 84px;gap:4px 6px;align-items:center;font-size:12px;color:var(--dim);pointer-events:none;text-shadow:0 1px 3px #000}
+#needs .bar{height:9px}#needs i{display:block;height:100%;width:0}
+#cam,#out,#tL,#tR,#tH,#tD,#tE{font:inherit;font-weight:700;padding:10px 12px;border:2px solid #3b3366;border-radius:12px;background:#0b0918cc;color:var(--ink);cursor:pointer}
+#ctl{flex-wrap:wrap}#sw{min-width:150px}
+#trip{display:none;flex-direction:column;gap:8px;max-width:640px;width:100%;margin:0 auto}
+#map{display:flex;gap:4px}.rm{flex:1;text-align:center;font-size:12px;padding:6px 2px;border-radius:8px;background:#1d1744cc;border:2px solid transparent;min-height:60px}.rm.me{border-color:var(--lamp)}
+#tb{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+#map{display:none}
+#slats{position:fixed;inset:0;pointer-events:none;display:none;z-index:3;background:repeating-linear-gradient(90deg,#000 0 28px,#0000 28px 38px)}
+#ov{position:fixed;inset:0;background:#0b0918ee;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:12px;z-index:5}
+#ov.on{display:flex}
+#ov h1{font-size:clamp(30px,7vw,52px);margin:0;line-height:1.05}
+#ov p{max-width:440px;margin:0;color:var(--dim);font-size:17px;line-height:1.4}
+#ov .big{font-size:84px;line-height:1}
+#ov button{font:inherit;font-weight:800;font-size:20px;padding:12px 28px;border:0;border-radius:12px;background:var(--lamp);color:#2a1a00;cursor:pointer;box-shadow:0 5px 0 #b8741f}
+#ov.bad{background:#3a0610f2}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="hud">
+  <div><div id="night">Night 1</div><div id="clock">10:00 PM</div></div>
+  <div class="meter"><span>Fun (reach the gold line by 4 AM)</span><div class="bar"><i id="fun"></i><span id="target"></span></div></div>
+</div>
+<div id="needs"><span>🧠 Brain</span><div class="bar"><i id="bBrain" style="background:#ff6ad5"></i></div><span>💧 Thirst</span><div class="bar"><i id="bThirst" style="background:#4aa8ff;width:100%"></i></div><span>🍞 Hunger</span><div class="bar"><i id="bHunger" style="background:#ffb347;width:100%"></i></div><span>😴 Brother</span><div class="bar"><i id="bNoise" style="background:#ffe14a"></i></div></div>
+<div id="bot"><div id="cap">&nbsp;</div><div id="ctl"><button id="sw">Switch tab (Space)</button><button id="cam">📹 Cams</button><button id="out">🚶 Sneak out</button><button id="mute" aria-label="Toggle sound">🔊</button></div><div id="trip"><div id="map"></div><div id="tb"><button id="tL">⬆ Walk forward</button><button id="tR">⬇ Walk back</button><button id="tH">🚪 Hide</button><button id="tD">💧 Drink</button><button id="tE">🍞 Eat</button></div></div></div>
+<div id="slats"></div>
+<div id="ov"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const NIGHTS=[
+ {step:3.2,door:1.7,fake:0,silent:0,target:55},
+ {step:2.8,door:1.5,fake:.1,silent:0,target:65},
+ {step:2.4,door:1.3,fake:.2,silent:.15,target:75},
+ {step:2.1,door:1.1,fake:.3,silent:.3,target:85},
+ {step:1.8,door:.9,fake:.35,silent:.45,target:95}];
+let brain=0,thirst=100,hunger=100,noise=0,away=false,node=4,hid=false,mv=0,mvTo=4,dadOn=false,dadNext=999,dadT=0;
+const LEN=70,RATE=1.2,OPEN=1.35,QS=["12 × 7","144 ÷ 12","3x + 5 = 26","Area of 9 by 6","Next: 2, 6, 18, …","15% of 80","√81","7² − 4²","Simplify 18/24","Solve 2x − 3 = 11"];
+let n=0,t=0,fun=0,hw=0,view="game",stage=0,tick=0,doorT=0,fake=false,run=false,starT=0,muted=false,ac=null,hide=false,lunge=false,doorAng=0,doorTarget=0,clock=0,pong={},keys={};
+
+/* ---------- 3D scene ---------- */
+const R=new THREE.WebGLRenderer({canvas:$("cv"),antialias:true});
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x0a0818);scene.fog=new THREE.Fog(0x0a0818,6,14);
+const cam=new THREE.PerspectiveCamera(55,1,.1,40);
+const std=(c,r=.85)=>new THREE.MeshStandardMaterial({color:c,roughness:r});
+function box(w,h,d,mat,x,y,z,p=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);p.add(m);return m}
+scene.add(new THREE.AmbientLight(0x5a5aa0,.55));
+const lamp=new THREE.PointLight(0xffa04a,.9,9);lamp.position.set(-3.2,1.7,-2.4);scene.add(lamp);
+const scrL=new THREE.PointLight(0x9ff3ff,1.3,5);scrL.position.set(-.5,1.3,-2.2);scene.add(scrL);
+const hallL=new THREE.PointLight(0xffa040,0,7);hallL.position.set(1.5,1.7,-3.2);scene.add(hallL);
+// room shell, floor, rug
+const room=new THREE.Mesh(new THREE.BoxGeometry(9,3.4,9),new THREE.MeshStandardMaterial({color:0x2c2358,side:THREE.BackSide,roughness:1}));room.position.set(0,1.7,1);scene.add(room);
+box(9,.02,9,std(0x3a2a22),0,.01,1);
+box(2.6,.02,1.8,std(0x5a2f6e),-.4,.02,-1.6);
+// desk, chair, bed, posters, lamp
+const wood=std(0x6b4a34);
+box(2.4,.07,.9,wood,-.5,.76,-3.05);box(.07,.76,.85,wood,-1.65,.38,-3.05);box(.07,.76,.85,wood,.65,.38,-3.05);
+box(.55,.07,.5,std(0x22204a),-.5,.5,-2.2);box(.55,.6,.07,std(0x22204a),-.5,.85,-1.95);
+box(2,.45,3,std(0x3b5a9a),-3.4,.25,-.9);box(2.05,.12,3.05,std(0x7a8ad0),-3.4,.52,-.9);box(.9,.14,.5,std(0xf2eefc),-3.4,.64,-2.2);
+box(.9,1.2,.03,std(0xff5a8a),-2.6,2.2,-3.46);box(.7,.9,.03,std(0x5ad0ff),-3.7,2.1,-3.46);
+const bulb=new THREE.Mesh(new THREE.SphereGeometry(.12,12,10),new THREE.MeshBasicMaterial({color:0xffc070}));bulb.position.copy(lamp.position);scene.add(bulb);
+// laptop
+const lap=new THREE.Group();lap.position.set(-.5,.8,-2.95);lap.scale.setScalar(1.6);scene.add(lap);
+box(.8,.03,.55,std(0x8a88a8,.4),0,0,0,lap);
+const lid=new THREE.Group();lid.position.set(0,.015,-.27);lid.rotation.x=-.2;lap.add(lid);
+box(.8,.52,.02,std(0x8a88a8,.4),0,.26,0,lid);
+const cvs=document.createElement("canvas");cvs.width=640;cvs.height=400;const cx=cvs.getContext("2d");
+const tex=new THREE.CanvasTexture(cvs);
+const screen=new THREE.Mesh(new THREE.PlaneGeometry(.74,.46),new THREE.MeshBasicMaterial({map:tex}));screen.position.set(0,.27,.0115);lid.add(screen);
+// door
+const pivot=new THREE.Group();pivot.position.set(1.05,0,-3.44);scene.add(pivot);
+box(.9,2,.06,std(0x8a6a4a),.45,1,0,pivot);
+const knob=new THREE.Mesh(new THREE.SphereGeometry(.04,10,8),new THREE.MeshStandardMaterial({color:0xe0c060,metalness:.8,roughness:.3}));knob.position.set(.8,1,.06);pivot.add(knob);
+box(1.1,2.1,.04,std(0x2a1a14),1.5,1.05,-3.47);
+const hall=new THREE.Mesh(new THREE.PlaneGeometry(.9,2),new THREE.MeshBasicMaterial({color:0xffb766}));hall.position.set(1.5,1,-3.49);scene.add(hall);
+const gap=new THREE.Mesh(new THREE.PlaneGeometry(.88,.03),new THREE.MeshBasicMaterial({color:0xffc070}));gap.position.set(1.5,.02,-3.405);scene.add(gap);
+const spill=new THREE.Mesh(new THREE.PlaneGeometry(1,.8),new THREE.MeshBasicMaterial({color:0xffa040,transparent:true,opacity:.35}));spill.rotation.x=-Math.PI/2;spill.position.set(1.5,.03,-3.05);scene.add(spill);
+const feet=[1.33,1.67].map(x=>box(.14,.03,.02,new THREE.MeshBasicMaterial({color:0x05030a}),x,.02,-3.402));
+// Mum
+const mum=new THREE.Group();mum.position.set(1.55,0,-3.3);mum.visible=false;scene.add(mum);
+function part(g,c,x,y,z,rx=0,rz=0){const m=new THREE.Mesh(g,std(c));m.position.set(x,y,z);m.rotation.set(rx,0,rz);mum.add(m);return m}
+part(new THREE.CylinderGeometry(.2,.32,.9,18),0x7a3b9e,0,.95,0);
+part(new THREE.CylinderGeometry(.07,.07,.55,10),0xe8b894,-.1,.27,0);part(new THREE.CylinderGeometry(.07,.07,.55,10),0xe8b894,.1,.27,0);
+part(new THREE.CylinderGeometry(.06,.06,.6,10),0xe8b894,-.3,1.1,.05,0,.25);part(new THREE.CylinderGeometry(.06,.06,.6,10),0xe8b894,.3,1.1,.05,0,-.25);
+part(new THREE.SphereGeometry(.17,20,16),0xf0c4a0,0,1.62,0);part(new THREE.SphereGeometry(.19,16,12),0x2b1a14,0,1.68,-.05);
+[-.065,.065].forEach(x=>{part(new THREE.BoxGeometry(.05,.025,.02),0x000000,x,1.64,.16);part(new THREE.BoxGeometry(.08,.015,.02),0x5a1a14,x,1.69,.165,0,x<0?-.5:.5)});
+part(new THREE.BoxGeometry(.09,.02,.02),0x8a1a1a,0,1.55,.16);
+// window with Dad outside
+const sky=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.7),new THREE.MeshBasicMaterial({color:0x101c44}));sky.position.set(-.5,2.2,-3.47);scene.add(sky);
+[[1.2,.06,0,.38],[1.2,.06,0,-.38],[.06,.8,-.58,0],[.06,.8,.58,0]].forEach(([w,h,x,y])=>box(w,h,.05,wood,-.5+x,2.2+y,-3.46));
+const dadG=new THREE.Group();scene.add(dadG);dadG.visible=false;
+const dm=new THREE.MeshStandardMaterial({color:0x14101c,roughness:1});
+box(.5,.22,.08,dm,-.5,2.08,-3.44,dadG);
+const dh=new THREE.Mesh(new THREE.SphereGeometry(.13,14,10),dm);dh.position.set(-.5,2.32,-3.44);dadG.add(dh);
+[-.05,.05].forEach(x=>box(.04,.025,.01,new THREE.MeshBasicMaterial({color:0xffffff}),-.5+x,2.34,-3.312,dadG));
+const dadL=new THREE.PointLight(0xfff0a0,0,5);dadL.position.set(-.5,2.2,-3);scene.add(dadL);
+// the house beyond the bedroom door
+const Z=[-14,-11,-8,-5],cp=new THREE.Vector3(.4,1.5,2),cl=new THREE.Vector3(.4,1,-3.2),tp=new THREE.Vector3(),tl=new THREE.Vector3();let deskZ=2;
+const hs=new THREE.Mesh(new THREE.BoxGeometry(3,3,12),new THREE.MeshStandardMaterial({color:0x4a3b66,side:THREE.BackSide,roughness:1}));hs.position.set(1.5,1.5,-9.5);scene.add(hs);
+box(3,.02,12,std(0x3a2a22),1.5,.01,-9.5);
+[[-5,0xffa850],[-11,0x7ab0ff],[-14,0xe8f4ff]].forEach(([z,c])=>{const l=new THREE.PointLight(c,.9,7);l.position.set(1.5,2.6,z);scene.add(l)});
+[1,2,3].forEach(i=>box(.06,2,.9,std(0x7a5a3a),.05,1,Z[i]));
+box(.5,.8,1.2,wood,.3,.4,-4.6);
+for(let k=0;k<4;k++)box(1,.25*(k+1),.5,wood,2.5,.125*(k+1),-7.2-k*.5);
+box(1.4,.5,.7,std(0x3b5a9a),2.3,.25,-11);box(.1,.6,1,new THREE.MeshBasicMaterial({color:0x6a9aff}),2.9,1,-11);
+box(.6,.9,2.2,std(0xd8d0c0),2.6,.45,-14.2);box(.8,1.9,.8,std(0xeeeeee),.5,.95,-15.1);
+function fit(){const w=innerWidth,h=innerHeight;R.setPixelRatio(Math.min(devicePixelRatio,2));R.setSize(w,h,false);cam.aspect=w/h;
+ const d=Math.min(7,Math.max(2.3,1.9/(Math.tan(cam.fov*Math.PI/360)*cam.aspect)));
+ deskZ=-3.2+d;if(!away)cp.set(.4,1.5,deskZ);cam.updateProjectionMatrix()}
+addEventListener("resize",fit);fit();
+
+/* ---------- laptop screen (2D canvas) ---------- */
+const W=640,H=400,F=s=>`700 ${s}px "Baloo 2",system-ui,sans-serif`;
+const FT=56,FB=392,PH=72,BS=10;
+function serve(d){const p=pong,a=(Math.random()-.5)*.9,s=250+n*15;p.bx=W/2;p.by=(FT+FB)/2;p.vx=Math.cos(a)*s*d;p.vy=Math.sin(a)*s;p.wait=.8}
+function newPong(){pong={py:224,ay:224,ps:0,as:0};serve(1)}
+function stepPong(dt){
+ const p=pong,k=(keys.ArrowDown||keys.KeyS?1:0)-(keys.ArrowUp||keys.KeyW?1:0);
+ if(k){p.ty=null;p.py+=k*340*dt}else if(p.ty!=null)p.py+=(p.ty-p.py)*Math.min(1,dt*16);
+ p.py=Math.max(FT+PH/2,Math.min(FB-PH/2,p.py));
+ const asp=170+n*12,dy=(p.vx>0?p.by:(FT+FB)/2)-p.ay;
+ p.ay+=Math.max(-asp*dt,Math.min(asp*dt,Math.abs(dy)>8?dy:0));
+ p.ay=Math.max(FT+PH/2,Math.min(FB-PH/2,p.ay));
+ if(p.wait>0){p.wait-=dt;return}
+ p.bx+=p.vx*dt;p.by+=p.vy*dt;
+ if(p.by<FT+BS/2){p.by=FT+BS/2;p.vy=Math.abs(p.vy)}
+ if(p.by>FB-BS/2){p.by=FB-BS/2;p.vy=-Math.abs(p.vy)}
+ const hitP=p.vx<0&&p.bx-BS/2<=39&&p.bx>20&&Math.abs(p.by-p.py)<PH/2+BS/2;
+ const hitA=p.vx>0&&p.bx+BS/2>=W-39&&p.bx<W-20&&Math.abs(p.by-p.ay)<PH/2+BS/2;
+ if(hitP||hitA){
+  const pad=hitP?p.py:p.ay,a=(p.by-pad)/(PH/2)*.85,s=Math.min(540,Math.hypot(p.vx,p.vy)*1.07),d=hitP?1:-1;
+  p.vx=Math.cos(a)*s*d;p.vy=Math.sin(a)*s;p.bx=hitP?39+BS/2:W-39-BS/2;
+  if(hitP){fun+=1.5;noise+=muted?1:3;snd("star")}else snd("clink");
+ }
+ if(p.bx<6){p.as++;fun=Math.max(0,fun-2);serve(-1);snd("thud")}
+ if(p.bx>W-6){p.ps++;fun+=4;serve(1);snd("clink")}
+}
+function drawPong(c){
+ const p=pong;c.fillStyle="#0b1030";c.fillRect(0,0,W,H);
+ c.fillStyle="#ffffff2a";for(let y=FT;y<FB;y+=26)c.fillRect(W/2-2,y,4,14);
+ c.fillRect(0,FT-2,W,2);c.fillRect(0,FB,W,2);
+ c.font=F(56);c.textAlign="center";c.fillStyle="#9ff3ff";c.fillText(p.ps,W/2-70,FT+60);c.fillStyle="#ff7ab0";c.fillText(p.as,W/2+70,FT+60);
+ c.fillStyle="#9ff3ff";c.fillRect(29,p.py-PH/2,10,PH);c.fillStyle="#ff7ab0";c.fillRect(W-39,p.ay-PH/2,10,PH);
+ c.fillStyle="#fff";c.fillRect(p.bx-BS/2,p.by-BS/2,BS,BS);
+}
+newPong();
+function drawScreen(){
+ const c=cx;
+ if(view==="game"){
+  drawPong(c);
+  
+  
+  
+  
+  
+ }else{
+  c.fillStyle="#f6f1e4";c.fillRect(0,0,W,H);c.fillStyle="#2a2540";c.textAlign="left";c.font=F(30);c.fillText("Maths homework",24,80);
+  const q=Math.min(10,Math.floor(hw/2.5));
+  QS.forEach((s,i)=>{const x=24+(i>4?310:0),y=128+(i%5)*50,done=i<q;c.font=F(22);c.fillStyle=done?"#8a8499":"#2a2540";c.fillText((done?"✓ ":(i+1)+". ")+s,x,y);
+   if(done){c.fillStyle="#17a35a";c.fillRect(x+30,y-8,c.measureText(s).width,3)}});
+ }
+ if(view==="cams")drawCams(c);c.fillStyle="#2b2450";c.fillRect(0,0,W,40);
+ [["🎮 Pong",0,"game"],["📘 Homework.doc",210,"hw"],["📹 Cams",420,"cams"]].forEach(([l,x,v])=>{c.fillStyle=view===v?"#f6f1e4":"#3a3162";c.fillRect(x+6,6,196,34);c.fillStyle=view===v?"#2a2540":"#a79fd0";c.font=F(18);c.textAlign="left";c.fillText(l,x+16,30)});
+ tex.needsUpdate=true;
+}
+
+/* ---------- audio ---------- */
+function snd(k){
+ if(muted)return;
+ try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+  const o=ac.createOscillator(),g=ac.createGain(),now=ac.currentTime;
+  const p={clink:[1400,"sine",.12,.1],creak:[160,"sawtooth",.5,.07],thud:[70,"sine",.25,.5],handle:[500,"square",.35,.1],caught:[90,"sawtooth",.9,.5],star:[900,"triangle",.08,.06]}[k];
+  o.type=p[1];o.frequency.setValueAtTime(p[0],now);
+  if(k==="creak")o.frequency.linearRampToValueAtTime(260,now+p[2]);
+  if(k==="caught")o.frequency.exponentialRampToValueAtTime(30,now+p[2]);
+  g.gain.setValueAtTime(p[3],now);g.gain.exponentialRampToValueAtTime(.001,now+p[2]);
+  o.connect(g).connect(ac.destination);o.start(now);o.stop(now+p[2]);}catch(e){}
+}
+
+/* ---------- game logic ---------- */
+function cap(s,hot){$("cap").textContent=s||"\u00a0";$("cap").className=hot?"hot":""}
+function setView(v){if(away&&v!=="hw")return;view=v;scrL.color.set(v==="game"?0xc78bff:v==="cams"?0x7dffa8:0xfff4d8)}
+function toggle(){if(run&&!away)setView(view==="hw"?"game":"hw")}
+function advance(){
+ const cfg=NIGHTS[n];if(away){roam();return}if(stage===4||Math.random()>.7)return;
+ stage++;const quiet=stage<4&&Math.random()<cfg.silent;hide=quiet&&stage===3;
+ if(!quiet){
+  if(stage===1){snd("clink");cap("*clink of dishes in the kitchen*")}
+  if(stage===2){snd("creak");cap("*creak… somebody’s on the stairs*")}
+  if(stage===3){snd("thud");setTimeout(()=>snd("thud"),350);cap("*footsteps in the hallway*",true)}
+ }else cap("");
+ if(stage===4){fake=Math.random()<cfg.fake;doorT=cfg.door;snd("handle");cap("*the door handle is turning!*",true)}
+}
+function mumAtDoor(dt){
+ doorT-=dt;if(doorT>0)return;
+ if(fake){stage=2;hide=false;cap("*she walks away…*");snd("creak");return}
+ if(view!=="hw")return caught();
+ stage=Math.random()<.5?0:1;hide=false;doorTarget=OPEN;mum.visible=true;
+ cap("“Good, keep it up, love.”",true);snd("clink");
+ setTimeout(()=>{doorTarget=0},1700);setTimeout(()=>{if(!lunge)mum.visible=false;if(run)cap("")},2500);
+}
+const ROOMS=["Kitchen","Living room","Stairs","Hallway","Bedroom"],CL=[0,1,1,1,0];
+function lose(e,h,p){run=false;snd("caught");show(`<div class="big">${e}</div><h1>${h}</h1><p>${p}</p><button id="go">Retry Night ${n+1}</button>`,"bad");$("go").onclick=startNight}
+function drawCams(c){
+ c.fillStyle="#050a08";c.fillRect(0,0,W,H);
+ ["KITCHEN","LIVING ROOM","STAIRS","HALLWAY"].forEach((l,i)=>{
+  const x=14+(i%2)*310,y=54+Math.floor(i/2)*170;
+  c.fillStyle="#0e2418";c.fillRect(x,y,296,158);
+  for(let j=0;j<40;j++){c.fillStyle=`rgba(120,255,160,${Math.random()*.12})`;c.fillRect(x+Math.random()*296,y+Math.random()*158,30,2)}
+  c.fillStyle="#7dffa8";c.font=F(16);c.textAlign="left";c.fillText("CAM "+(i+1)+"  "+l,x+8,y+20);
+  if(stage===i){c.font="64px serif";c.textAlign="center";c.fillText("👩",x+148,y+105)}
+ });
+ if(stage>=4){c.fillStyle="#ff4a5e";c.font=F(22);c.textAlign="center";c.fillText("⚠ MUM IS AT YOUR DOOR",W/2,H-6)}
+}
+function trip(){
+ $("slats").style.display=away&&hid?"block":"none";$("trip").style.display=away?"flex":"none";$("ctl").style.display=away?"none":"flex";
+ if(!away)return;
+ $("map").innerHTML=ROOMS.map((r,i)=>`<div class="rm${i===node?" me":""}">${r}<br>${i===node?(hid?"🚪":"🧒"):""}${i===stage&&Math.abs(stage-node)<=1?"👩":""}</div>`).join("");
+ $("tH").textContent=hid?"🚪 Come out":"🚪 Hide in closet";
+ $("tH").style.display=CL[node]?"":"none";$("tD").style.display=$("tE").style.display=node===0?"":"none";
+}
+function spot(){
+ trip();if(!away||mv>0)return;
+ if(stage===node){if(hid)cap("*she’s right outside the closet…*",1);else caught("Mum walked right into you in the "+ROOMS[node].toLowerCase()+". Back to bed.",1)}
+ else if(Math.abs(stage-node)<2)cap("*footsteps right nearby…*",1);
+}
+function roam(){if(Math.random()<.25)return;stage=Math.max(0,Math.min(3,stage+(Math.random()<.5?-1:1)));spot()}
+function out(){
+ if(!run||away||mv>0)return;
+ if(stage>=3||doorAng>.1)return cap("Mum’s too close to sneak out!",1);
+ setView("hw");away=true;node=4;mvTo=3;mv=.8;noise+=25;snd("creak");cap("*you creep out the door*");doorTarget=OPEN;setTimeout(()=>{doorTarget=0},1500);trip();
+}
+function walk(d){if(!run||!away||hid||mv>0)return;const to=node+d;if(to<0||to>4)return;mvTo=to;mv=.8;snd("creak");if(to===4)doorTarget=OPEN}
+function hideToggle(){if(!run||!away||mv>0||!CL[node])return;hid=!hid;snd("clink");spot()}
+function eat(k){if(!run||!away||mv>0||hid||node!==0)return;if(k)hunger=Math.min(100,hunger+55);else thirst=Math.min(100,thirst+60);snd("clink");cap(k?"*munch munch (quietly)*":"*glug glug*")}
+function wakeBro(){
+ noise=0;
+ if(away){stage=node<3?node+1:2;cap("“MUM! Someone’s out of bed!”",1);spot()}
+ else{stage=4;fake=false;doorT=NIGHTS[n].door+.5;snd("handle");cap("“MUUUM! He’s on the laptop!”",1)}
+}
+function dad(dt){
+ if(dadOn){dadT-=dt;if(dadT<=0){dadOn=false;dadNext=14+Math.random()*10;if(!away&&view!=="hw")caught("Dad spotted the glow of your laptop through the window. “Homework. Now.”",1)}return}
+ if((dadNext-=dt)<=0){dadOn=true;dadT=Math.max(1.2,2.2-n*.25);cap("*a flashlight sweeps across the window*",1);snd("thud")}
+}
+function needs(dt){
+ if(!away){
+  if(view==="game"){fun+=RATE*dt;stepPong(dt);brain=Math.max(0,brain-2.2*dt)}
+  else if(view==="hw"){hw+=dt;brain+=3.4*dt}
+ }else brain=Math.max(0,brain-1.5*dt);
+ thirst-=(1.8+.15*n)*dt;hunger-=(1+.3*n)*dt;noise=Math.max(0,noise-2.5*dt);
+ if(mv>0){mv-=dt;if(mv<=0){mv=0;node=mvTo;if(node===4){away=false;noise+=25;snd("creak");cap("*you slip back into your chair*");setTimeout(()=>{doorTarget=0},900);trip()}else spot()}}
+ dad(dt);if(!run)return;
+ if(brain>=100)return lose("🧠💥","Brain overload","You did so much homework your brain went off like a firework. Dad saw the flash through the window. Mix in some Pong.");
+ if(thirst<=0)return lose("🥵","Parched","You were too thirsty to think. Sneak downstairs for water before it gets this bad.");
+ if(hunger<=0)return lose("🤤","Starving","Your stomach growled so loud the whole house woke up. Eat something in the kitchen.");
+ if(noise>=100&&stage<4)wakeBro();
+}
+function update(dt){
+ t+=dt;const cfg=NIGHTS[n];
+ needs(dt);if(!run)return;
+ 
+ tick+=dt;if(stage<4&&tick>=cfg.step){tick=0;advance()}
+ if(stage===4)mumAtDoor(dt);
+ if(!run)return;
+ const mins=Math.floor(t/LEN*360),h=(22+Math.floor(mins/60))%24,m=mins%60;
+ $("clock").textContent=((h%12)||12)+":"+String(m).padStart(2,"0")+" "+(h>=12?"PM":"AM");
+ $("fun").style.width=Math.min(100,fun)+"%";[["bBrain",brain],["bThirst",thirst],["bHunger",hunger],["bNoise",noise]].forEach(([i,v])=>$(i).style.width=Math.max(0,Math.min(100,v))+"%");
+ if(t>=LEN)endNight();
+}
+let prev=0;
+function loop(ts){
+ const dt=Math.min(.1,(ts-prev)/1000);prev=ts;clock+=dt;
+ if(run)update(dt);
+ // door, light, mum animation
+ doorAng+=(doorTarget-doorAng)*Math.min(1,dt*6);
+ const shake=run&&stage===4&&doorAng<.05?Math.sin(clock*45)*.025:0;
+ pivot.rotation.y=-doorAng+shake;knob.rotation.z=shake*8;
+ const show=stage>=3&&!hide&&doorAng<.3;
+ gap.visible=spill.visible=show;feet.forEach(f=>f.visible=show);
+ let hl=doorAng>.5?1.8:show?.6:0;
+ if(lunge){mum.position.z+=(-1.9-mum.position.z)*Math.min(1,dt*5);mum.scale.setScalar(1+(mum.position.z+3.3)*.12);hallL.color.set(0xff2030);hl=5}
+ hallL.intensity+=(hl-hallL.intensity)*Math.min(1,dt*10);
+ bulb.visible=true;dadG.visible=dadOn;dadL.intensity=dadOn?1.6:0;lamp.intensity=.85+Math.sin(clock*3)*.03;
+ const dn=away?(mv>0?mvTo:node):4;
+ if(dn===4){tp.set(.4,1.5,deskZ);tl.set(.4,1,-3.2)}
+ else if(hid){tp.set(.35,1.5,Z[dn]);tl.set(3,1.35,Z[dn])}
+ else{tp.set(1.5,1.55,Z[dn]);tl.set(1.5,1.35,Z[dn]-4)}
+ const kk=Math.min(1,dt*(away?4:20));cp.lerp(tp,kk);cl.lerp(tl,kk);cam.position.copy(cp);cam.lookAt(cl);
+ if(away){mum.userData.a=1;const same=stage===dn;mum.visible=stage<=dn;mum.rotation.y=same&&hid?-1.57:0;mum.position.set(same&&hid?1.4:1.5,0,same&&!hid?Z[dn]-1.6:Z[stage]);mum.scale.setScalar(1)}
+ else if(mum.userData.a){mum.userData.a=0;mum.visible=false;mum.rotation.y=0;mum.position.set(1.55,0,-3.3)}
+ drawScreen();R.render(scene,cam);requestAnimationFrame(loop);
+}
+function startNight(){
+ $("ov").className="";run=true;t=0;fun=0;hw=0;stage=0;tick=0;newPong();hide=false;brain=noise=0;thirst=hunger=100;away=false;node=4;mv=0;hid=false;dadOn=false;dadNext=n<1?999:8+Math.random()*8;trip();lunge=false;
+ doorAng=doorTarget=0;mum.visible=false;mum.position.set(1.55,0,-3.3);mum.scale.setScalar(1);hallL.color.set(0xffa040);
+ setView("game");cap("");$("night").textContent="Night "+(n+1);$("target").style.left=NIGHTS[n].target+"%";
+}
+function show(html,cls){const o=$("ov");o.className="on "+(cls||"");o.innerHTML=html}
+function caught(why,nomum){
+ run=false;lunge=!nomum;doorTarget=nomum?0:OPEN;mum.visible=!nomum;snd("caught");cap("");
+ setTimeout(()=>{show(`<div class="big">😠</div><h1>WHAT ARE YOU DOING?!</h1><p>${why||"Mum opened the door and the game wasn’t homework. Laptop confiscated until further notice."}</p><button id="go">Try Night ${n+1} again</button>`,"bad");$("go").onclick=startNight},1100);
+}
+function endNight(){
+ run=false;const q=Math.min(10,Math.floor(hw/2.5)),need=NIGHTS[n].target;
+ if(fun<need){show(`<div class="big">😴</div><h1>Too bored</h1><p>You reached ${Math.floor(fun)} fun and needed ${need}. You fell asleep on the keyboard. Be braver about playing.</p><button id="go">Retry Night ${n+1}</button>`);$("go").onclick=startNight;return}
+ const mm=q>=8?"“Top marks, I bet.”":q>=4?"“Hm. Fine.”":"“Why is this blank?”";
+ if(n===NIGHTS.length-1){show(`<div class="big">🌅</div><h1>You beat all five nights</h1><p>Night 5 homework: ${q}/10. Mum: ${mm} She still thinks you’re an angel.</p><button id="go">Play again</button>`);$("go").onclick=()=>{n=0;intro()};return}
+ show(`<div class="big">🛌</div><h1>4 AM. Lights out.</h1><p>Fun ${Math.floor(fun)}/${need}. Homework ${q}/10. Mum: ${mm}</p><button id="go">Night ${n+2}</button>`);$("go").onclick=()=>{n++;intro()};
+}
+function intro(){
+ const hint=["Mum is slow tonight. Listen for her footsteps.","She’s picking up speed.","Sometimes she creeps up silently. Watch the light under the door.","She might fake you out. Switching early costs fun.","She’s fast and quiet. Good luck."][n];
+ show(`<div class="big">🌙</div><h1>Night ${n+1}</h1><p>${hint}</p><p>Need ${NIGHTS[n].target} fun by 4 AM.</p><button id="go">Start the night</button>`);$("go").onclick=startNight;
+}
+
+/* ---------- input ---------- */
+const ray=new THREE.Raycaster(),v2=new THREE.Vector2();
+$("cv").addEventListener("pointerdown",e=>{
+ if(!run)return;
+ v2.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(v2,cam);
+ const hit=ray.intersectObject(screen)[0];if(!hit)return;
+ const x=hit.uv.x*W,y=(1-hit.uv.y)*H;
+ if(y<40){setView(x<210?"game":x<420?"hw":"cams");return}
+ 
+ 
+ 
+});
+addEventListener("pointermove",e=>{if(run&&view==="game")pong.ty=FT+Math.max(0,Math.min(1,e.clientY/innerHeight))*(FB-FT)});
+$("sw").onclick=toggle;$("cam").onclick=()=>{if(run&&!away)setView(view==="cams"?"hw":"cams")};$("out").onclick=out;$("tL").onclick=()=>walk(-1);$("tR").onclick=()=>walk(1);$("tH").onclick=hideToggle;$("tD").onclick=()=>eat(0);$("tE").onclick=()=>eat(1);
+$("mute").onclick=()=>{muted=!muted;$("mute").textContent=muted?"🔇":"🔊"};
+addEventListener("keydown",e=>{if(e.code==="Space"){e.preventDefault();toggle()}else{keys[e.code]=true;if(e.code==="ArrowLeft"||e.code==="ArrowUp"||e.code==="KeyW")walk(-1);if(e.code==="ArrowRight"||e.code==="ArrowDown"||e.code==="KeyS")walk(1);if(e.code==="KeyH")hideToggle();if(e.code==="KeyC"&&run&&!away)setView(view==="cams"?"hw":"cams");if(e.code.startsWith("Arrow"))e.preventDefault()}});
+addEventListener("keyup",e=>{keys[e.code]=false});
+setView("game");requestAnimationFrame(loop);
+show(`<div class="big">💻</div><h1>Five Nights at Mum’s</h1><p>You’re supposed to be doing homework. You’re not. Play Pong on your laptop to build fun: move your mouse or finger up and down, or use W and S. Pong pauses while you do homework. Listen for Mum. When she reaches the door, switch to the homework tab.</p><p>Space switches tabs. Too much homework fries your brain, so play Pong to cool off. Keep the noise down: your brother is asleep behind you. Check 📹 Cams to see where Mum is, and sneak downstairs for water and food when you need them.</p><button id="go">Start Night 1</button>`);
+$("go").onclick=intro;
+</script>
+</body>
+</html>
